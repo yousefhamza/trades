@@ -1,0 +1,12 @@
+<h1><%= @counter.name %></h1>
+
+<div class="counter-display">
+  <p>Current Count: <strong><%= @counter.count %></strong></p>
+</div>
+
+<div class="actions">
+  <%= button_to "Increment", increment_counter_path(@counter), method: :post %>
+  <%= link_to "Edit", edit_counter_path(@counter) %>
+  <%= link_to "Back to Counters", counters_path %>
+  <%= button_to "Delete", @counter, method: :delete, data: { confirm: "Are you sure?" } %>
+</div>

@@ -1,0 +1,31 @@
+<h1>My Counters</h1>
+
+<%= link_to "New Counter", new_counter_path, class: "button" %>
+
+<% if @counters.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Count</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @counters.each do |counter| %>
+        <tr>
+          <td><%= counter.name %></td>
+          <td><%= counter.count %></td>
+          <td>
+            <%= link_to "View", counter %>
+            <%= link_to "Edit", edit_counter_path(counter) %>
+            <%= button_to "Increment", increment_counter_path(counter), method: :post %>
+            <%= button_to "Delete", counter, method: :delete, data: { confirm: "Are you sure?" } %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>You don't have any counters yet.</p>
+<% end %>

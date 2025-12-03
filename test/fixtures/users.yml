@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+#
+# Default password for all users: "password123"
+# API tokens are fixed for testing purposes
+
+alice:
+  email: alice@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
+  api_token: alice_test_token_1234567890abcdef1234567890abcdef
+
+bob:
+  email: bob@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
+  api_token: bob_test_token_1234567890abcdef1234567890abcdef12
+
+charlie:
+  email: charlie@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
+  api_token: charlie_test_token_1234567890abcdef1234567890abcd

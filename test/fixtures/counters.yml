@@ -1,0 +1,44 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# Alice's counters
+alice_daily_tasks:
+  name: Daily Tasks
+  count: 15
+  user: alice
+
+alice_coffee:
+  name: Cups of Coffee
+  count: 42
+  user: alice
+
+alice_workouts:
+  name: Workouts
+  count: 8
+  user: alice
+
+# Bob's counters
+bob_bugs_fixed:
+  name: Bugs Fixed
+  count: 127
+  user: bob
+
+bob_meetings:
+  name: Meetings Attended
+  count: 23
+  user: bob
+
+# Charlie's counters
+charlie_books:
+  name: Books Read
+  count: 5
+  user: charlie
+
+charlie_runs:
+  name: Morning Runs
+  count: 30
+  user: charlie
+
+charlie_ideas:
+  name: Ideas Generated
+  count: 99
+  user: charlie
