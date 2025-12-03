@@ -41,7 +41,8 @@ class Api::CountersController < Api::BaseController
   private
 
   def set_counter
-    @counter = current_user.counters.find(params[:id])
+    @counter = current_user.counters.find_by(id: params[:id])
+    render json: { error: "Not found" }, status: :not_found unless @counter
   end
 
   def counter_params
