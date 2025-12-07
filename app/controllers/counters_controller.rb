@@ -63,6 +63,7 @@ class CountersController < ApplicationController
 
   def increment
     @counter.increment!
+    SlackService.new.notify_increment(@counter)
 
     respond_to do |format|
       format.html { redirect_to @counter, notice: "Counter incremented!" }

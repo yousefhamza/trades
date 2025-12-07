@@ -35,6 +35,7 @@ class Api::CountersController < Api::BaseController
 
   def increment
     @counter.increment!
+    SlackService.new.notify_increment(@counter)
     render json: @counter
   end
 
