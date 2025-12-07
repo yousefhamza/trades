@@ -1,7 +1,7 @@
 class CountersController < ApplicationController
   skip_forgery_protection if: -> { request.format.json? }
   before_action :authenticate_user!
-  before_action :set_counter, only: [:show, :edit, :update, :destroy, :increment]
+  before_action :set_counter, only: [:show, :edit, :update, :destroy, :increment, :share_to_slack]
 
   def index
     @counters = current_user.counters
@@ -63,11 +63,18 @@ class CountersController < ApplicationController
 
   def increment
     @counter.increment!
-    SlackService.new.notify_increment(@counter)
 
     respond_to do |format|
       format.html { redirect_to @counter, notice: "Counter incremented!" }
       format.json { render json: @counter }
+    end
+  end
+
+  def share_to_slack
+    if SlackService.new.share_counter(@counter)
+      redirect_back fallback_location: @counter, notice: "Counter shared to Slack!"
+    else
+      redirect_back fallback_location: @counter, alert: "Failed to share to Slack. Check your Slack configuration."
     end
   end
 

@@ -6,6 +6,7 @@
 
 <div class="actions">
   <%= button_to "Increment", increment_counter_path(@counter), method: :post %>
+  <%= button_to "Share to Slack", share_to_slack_counter_path(@counter), method: :post %>
   <%= link_to "Edit", edit_counter_path(@counter) %>
   <%= link_to "Back to Counters", counters_path %>
   <%= button_to "Delete", @counter, method: :delete, data: { confirm: "Are you sure?" } %>

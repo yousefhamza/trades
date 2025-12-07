@@ -20,6 +20,7 @@
             <%= link_to "View", counter %>
             <%= link_to "Edit", edit_counter_path(counter) %>
             <%= button_to "Increment", increment_counter_path(counter), method: :post %>
+            <%= button_to "Share to Slack", share_to_slack_counter_path(counter), method: :post %>
             <%= button_to "Delete", counter, method: :delete, data: { confirm: "Are you sure?" } %>
           </td>
         </tr>

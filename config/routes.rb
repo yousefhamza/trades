@@ -5,8 +5,12 @@ Rails.application.routes.draw do
   resources :counters do
     member do
       post :increment
+      post :share_to_slack
     end
   end
+
+  # Slack interactivity endpoint
+  post "slack/interactions", to: "slack_interactions#create"
 
   # JSON API (token-based auth)
   namespace :api do
