@@ -1,0 +1,17 @@
+<h1>Settings</h1>
+
+<h2>Slack Integration</h2>
+
+<% if current_user.slack_connected? %>
+  <p>Your Slack account is <strong>connected</strong>.</p>
+  <p>Slack User ID: <%= current_user.slack_user_id %></p>
+  <%= button_to "Disconnect Slack", disconnect_slack_settings_path, method: :delete, data: { confirm: "Are you sure you want to disconnect your Slack account?" } %>
+<% else %>
+  <p>Your Slack account is <strong>not connected</strong>.</p>
+  <p>Connect your Slack account to increment counters from Slack.</p>
+  <%= button_to "Connect Slack", user_slack_openid_omniauth_authorize_path, method: :post, data: { turbo: false } %>
+<% end %>
+
+<hr>
+
+<p><%= link_to "Back to Counters", counters_path %></p>

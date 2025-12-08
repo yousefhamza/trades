@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_03_132429) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_07_152744) do
   create_table "counters", force: :cascade do |t|
     t.string "name"
     t.integer "count", default: 0, null: false
@@ -29,9 +29,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_03_132429) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "api_token"
+    t.string "slack_user_id"
+    t.string "slack_team_id"
+    t.string "slack_access_token"
     t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["slack_user_id"], name: "index_users_on_slack_user_id", unique: true
   end
 
   add_foreign_key "counters", "users"

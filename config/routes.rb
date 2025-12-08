@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
-  devise_for :users
+  devise_for :users, controllers: { omniauth_callbacks: "users/omniauth_callbacks" }
+
+  # Settings
+  resource :settings, only: [ :show ] do
+    delete :disconnect_slack, on: :member
+  end
 
   # Web interface (session-based auth)
   resources :counters do
@@ -9,8 +14,9 @@ Rails.application.routes.draw do
     end
   end
 
-  # Slack interactivity endpoint
+  # Slack endpoints
   post "slack/interactions", to: "slack_interactions#create"
+  post "slack/events", to: "slack_events#create"
 
   # JSON API (token-based auth)
   namespace :api do

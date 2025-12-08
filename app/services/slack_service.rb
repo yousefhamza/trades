@@ -27,6 +27,57 @@ class SlackService
   end
 
   def update_message(response_url, counter)
+    post_to_response_url(response_url, {
+      replace_original: "true",
+      text: "Counter #{counter.name} - Current count: #{counter.count}",
+      blocks: build_blocks(counter)
+    })
+  end
+
+  def send_ephemeral(response_url, message)
+    post_to_response_url(response_url, {
+      response_type: "ephemeral",
+      replace_original: false,
+      text: message
+    })
+  end
+
+  def send_ephemeral_with_connect_button(response_url, message)
+    app_url = ENV["APP_URL"]
+    unless app_url.present?
+      Rails.logger.error("[SlackService] APP_URL environment variable is not set!")
+      return send_ephemeral(response_url, "#{message} Please contact the administrator - OAuth is not configured.")
+    end
+
+    oauth_url = "#{app_url}/users/auth/slack_openid"
+
+    post_to_response_url(response_url, {
+      response_type: "ephemeral",
+      replace_original: false,
+      text: message,
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: message }
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: { type: "plain_text", text: "Connect Account" },
+              url: oauth_url,
+              style: "primary"
+            }
+          ]
+        }
+      ]
+    })
+  end
+
+  private
+
+  def post_to_response_url(response_url, payload)
     uri = URI(response_url)
 
     http = Net::HTTP.new(uri.host, uri.port)
@@ -38,26 +89,20 @@ class SlackService
 
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
-    request.body = {
-      replace_original: "true",
-      text: "Counter #{counter.name} - Current count: #{counter.count}",
-      blocks: build_blocks(counter)
-    }.to_json
+    request.body = payload.to_json
 
     response = http.request(request)
     body = JSON.parse(response.body)
 
     unless body["ok"]
-      Rails.logger.error("[SlackService] Failed to update message: #{body["error"]}")
+      Rails.logger.error("[SlackService] Failed to post to response_url: #{body["error"]}")
     end
 
     body["ok"]
   rescue StandardError => e
-    Rails.logger.error("[SlackService] Failed to update message: #{e.message}")
+    Rails.logger.error("[SlackService] Failed to post to response_url: #{e.message}")
     false
   end
-
-  private
 
   def build_blocks(counter)
     [

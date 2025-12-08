@@ -13,15 +13,29 @@ Share counters to Slack and increment them directly from Slack messages.
 1. **Create a Slack App** at https://api.slack.com/apps
 
 2. **Add OAuth Scopes** (OAuth & Permissions):
-   - `chat:write` - to post messages to channels
+   - **Bot Token Scopes:**
+     - `chat:write` - to post messages to channels
+   - **User Token Scopes:**
+     - `openid` - for OAuth authentication
+     - `profile` - to get user profile info
+   - **Redirect URLs:**
+     - Add: `https://<your-domain>/users/auth/slack_openid/callback`
 
 3. **Enable Interactivity** (Interactivity & Shortcuts):
    - Toggle "Interactivity" to **On**
    - Set Request URL to: `https://<your-domain>/slack/interactions`
 
-4. **Install the app** to your workspace
+4. **Enable Event Subscriptions** (Event Subscriptions):
+   - Toggle "Enable Events" to **On**
+   - Set Request URL to: `https://<your-domain>/slack/events`
+   - Subscribe to bot events:
+     - `tokens_revoked` - to handle when users revoke access
 
-5. **Get your credentials**:
+5. **Install the app** to your workspace
+
+6. **Get your credentials** (Basic Information & OAuth & Permissions):
+   - Client ID: Found in "Basic Information"
+   - Client Secret: Found in "Basic Information"
    - Bot Token: Found in "OAuth & Permissions" (starts with `xoxb-`)
    - Channel ID: Right-click on a channel in Slack → "View channel details" → copy the ID at the bottom
 
@@ -108,21 +122,35 @@ User clicks "Increment" button in Slack
 |------|---------|
 | `app/controllers/counters_controller.rb` | `share_to_slack` action for web UI |
 | `app/controllers/slack_interactions_controller.rb` | Handles Slack button callbacks |
+| `app/controllers/slack_events_controller.rb` | Handles Slack events (token revocation) |
+| `app/controllers/settings_controller.rb` | User settings for Slack connection |
+| `app/controllers/users/omniauth_callbacks_controller.rb` | OAuth callback handler |
 | `app/services/slack_service.rb` | Slack API communication |
-| `config/routes.rb` | Defines `/slack/interactions` endpoint |
+| `config/routes.rb` | Defines `/slack/interactions` and `/slack/events` endpoints |
 
 ### Key Methods
 
 **SlackService** (`app/services/slack_service.rb`):
 - `share_counter(counter)` - Posts counter to Slack with interactive button
 - `update_message(response_url, counter)` - Updates existing Slack message
+- `send_ephemeral(response_url, message)` - Sends ephemeral message (only visible to one user)
+- `send_ephemeral_with_connect_button(response_url, message)` - Ephemeral with OAuth button
 - `build_blocks(counter)` - Builds Slack Block Kit message structure
 - `configured?` - Checks if environment variables are set
 
 **SlackInteractionsController** (`app/controllers/slack_interactions_controller.rb`):
 - `create` - Entry point for all Slack interactions
 - `handle_block_actions(payload)` - Routes button clicks
-- `increment_counter(counter_id, response_url)` - Increments and updates message
+- `increment_counter(counter_id, response_url, slack_user_id)` - Verifies auth and increments
+
+**SlackEventsController** (`app/controllers/slack_events_controller.rb`):
+- `create` - Entry point for Slack events
+- `handle_tokens_revoked(event)` - Disconnects users when they revoke access
+
+**User** (`app/models/user.rb`):
+- `connect_slack!(auth_hash)` - Links Slack account via OAuth
+- `disconnect_slack!` - Removes Slack connection
+- `slack_connected?` - Checks if Slack is linked
 
 ## Environment Variables
 
@@ -130,10 +158,16 @@ User clicks "Increment" button in Slack
 |----------|-------------|
 | `SLACK_BOT_TOKEN` | Bot token from Slack App (starts with `xoxb-`) |
 | `SLACK_CHANNEL_ID` | Channel ID where messages are posted |
+| `SLACK_CLIENT_ID` | OAuth Client ID from Basic Information |
+| `SLACK_CLIENT_SECRET` | OAuth Client Secret from Basic Information |
+| `APP_URL` | Public URL of your app (ngrok URL for local dev) |
 
 ```bash
 export SLACK_BOT_TOKEN=xoxb-your-bot-token
 export SLACK_CHANNEL_ID=C0123456789
+export SLACK_CLIENT_ID=1234567890.1234567890123
+export SLACK_CLIENT_SECRET=abcdef1234567890
+export APP_URL=https://your-ngrok-url.ngrok.io
 ```
 
 ## Local Development with ngrok
@@ -156,9 +190,118 @@ https://abc123.ngrok.io/slack/interactions
 
 Note: The ngrok URL changes each restart (unless on a paid plan), so update the Slack Request URL accordingly.
 
+## Authentication
+
+Only counter owners can increment their counters from Slack. Users must link their Slack account first.
+
+### OAuth Flow (Detailed)
+
+```
+User clicks "Connect Slack" button
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ POST https://<your-domain>/users/auth/slack_openid                          │
+│                                                                             │
+│ OmniAuth initiates the OAuth flow                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Redirect to Slack Authorization URL:                                        │
+│                                                                             │
+│ https://slack.com/openid/connect/authorize                                  │
+│   ?client_id=<SLACK_CLIENT_ID>                                              │
+│   &redirect_uri=https://<your-domain>/users/auth/slack_openid/callback      │
+│   &response_type=code                                                       │
+│   &scope=openid,profile                                                     │
+│   &state=<random_state_token>                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+   User sees Slack authorization screen and approves
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Slack redirects back to:                                                    │
+│                                                                             │
+│ GET https://<your-domain>/users/auth/slack_openid/callback                  │
+│   ?code=<authorization_code>                                                │
+│   &state=<random_state_token>                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Users::OmniauthCallbacksController#slack_openid                             │
+│ app/controllers/users/omniauth_callbacks_controller.rb                      │
+│                                                                             │
+│ - OmniAuth exchanges code for access token (server-to-server)               │
+│ - Extracts user ID and team ID from auth hash                               │
+│ - Calls current_user.connect_slack!(auth_hash)                              │
+│ - Redirects to /settings with success message                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ User#connect_slack!(auth_hash)                                              │
+│ app/models/user.rb                                                          │
+│                                                                             │
+│ Stores in database:                                                         │
+│ - slack_user_id (e.g., "U0A0WHKBA20")                                       │
+│ - slack_team_id (e.g., "T0A1M9UHAE4")                                       │
+│ - slack_access_token (for future API calls)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### URLs Reference
+
+| Purpose | URL |
+|---------|-----|
+| Start OAuth | `POST https://<your-domain>/users/auth/slack_openid` |
+| OAuth Callback | `GET https://<your-domain>/users/auth/slack_openid/callback` |
+| Settings Page | `GET https://<your-domain>/settings` |
+| Disconnect Slack | `DELETE https://<your-domain>/settings/disconnect_slack` |
+
+### Slack App Redirect URL Configuration
+
+In your Slack App (OAuth & Permissions → Redirect URLs), add:
+```
+https://<your-domain>/users/auth/slack_openid/callback
+```
+
+For local development with ngrok:
+```
+https://abc123.ngrok.io/users/auth/slack_openid/callback
+```
+
+### Linking Slack Account
+
+1. Log into the web app
+2. Go to `/settings`
+3. Click "Connect Slack"
+4. Authorize the app in Slack
+5. Your Slack account is now linked
+
+### Incrementing from Slack (Authorization Flow)
+
+When a user clicks "Increment" in Slack:
+
+1. **Not linked:** Shows ephemeral "Connect Account" button → starts OAuth
+2. **Linked but not owner:** Shows ephemeral "Not authorized" message
+3. **Owner:** Counter increments and message updates
+
+### Token Revocation
+
+When a user revokes access from Slack's side:
+
+1. Slack sends `tokens_revoked` event to `/slack/events`
+2. `SlackEventsController` receives the event
+3. User's Slack connection is automatically removed from the database
+
 ## Usage
 
 1. Navigate to any counter in the web interface
 2. Click "Share to Slack"
 3. The counter appears in your Slack channel with an "Increment" button
 4. Click "Increment" in Slack to increase the count - the message updates automatically
+5. Only the counter owner (with linked Slack account) can increment

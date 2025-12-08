@@ -2,18 +2,28 @@
 #
 # Default password for all users: "password123"
 # API tokens are fixed for testing purposes
+# Slack fields (slack_user_id, slack_team_id, slack_access_token) are nil - no Slack connections
 
 alice:
   email: alice@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
   api_token: alice_test_token_1234567890abcdef1234567890abcdef
+  slack_user_id:
+  slack_team_id:
+  slack_access_token:
 
 bob:
   email: bob@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
   api_token: bob_test_token_1234567890abcdef1234567890abcdef12
+  slack_user_id:
+  slack_team_id:
+  slack_access_token:
 
 charlie:
   email: charlie@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, 'password123') %>
   api_token: charlie_test_token_1234567890abcdef1234567890abcd
+  slack_user_id:
+  slack_team_id:
+  slack_access_token:

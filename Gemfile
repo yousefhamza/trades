@@ -63,5 +63,8 @@ group :test do
 end
 
 gem "devise", "~> 4.9"
+gem "omniauth-slack-openid"
+gem "omniauth-rails_csrf_protection"
+gem "dotenv-rails", groups: [ :development, :test ]
 
 gem "byebug", "~> 12.0", :groups => [:development, :test]
